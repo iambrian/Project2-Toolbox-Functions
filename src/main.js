@@ -34,7 +34,11 @@ var settings = {
     speed: 0.003,
     primaryColor: [ 91,	78,	60 ],
     secondaryColor: [ 76, 64, 47 ],
-    tertiaryColor: [ 45, 37, 26 ]
+    tertiaryColor: [ 45, 37, 26 ],
+    elbowX: 3,
+    elbowZ: 5,
+    wristX: 7,
+    wristZ: 5
 }
 
 function clamp(num, min, max) {
@@ -57,7 +61,6 @@ function onLoad(framework) {
     var lambertPrimary = new THREE.MeshLambertMaterial({ color: primaryColor, side: THREE.DoubleSide });
     var lambertSecondary = new THREE.MeshLambertMaterial({ color: secondaryColor, side: THREE.DoubleSide });
     var lambertTertiary = new THREE.MeshLambertMaterial({ color: tertiaryColor, side: THREE.DoubleSide });
-
 
     // Set light
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
@@ -137,7 +140,6 @@ function onLoad(framework) {
 
     });
 
-
     var geometry = new THREE.BoxGeometry(0,0,0 );
     var material = new THREE.MeshBasicMaterial( {color: 0xCB2400} );
     var shoulder = new THREE.Mesh( geometry, material );
@@ -206,6 +208,33 @@ function onLoad(framework) {
     gui.addColor(settings, 'primaryColor');
     gui.addColor(settings, 'secondaryColor');
     gui.addColor(settings, 'tertiaryColor');
+    gui.add(settings, 'elbowX',0, 10).onChange(function(newVal) {
+        var elbow = framework.scene.getObjectByName("elbow");
+        if (elbow !== undefined) {
+            elbow.position.set(newVal, elbow.position.y, elbow.position.z);
+        }
+    });
+
+    gui.add(settings, 'elbowZ',0, 10).onChange(function(newVal) {
+        var elbow = framework.scene.getObjectByName("elbow");
+        if (elbow !== undefined) {
+            elbow.position.set(elbow.position.x, elbow.position.y, newVal);
+        }
+    });
+
+    gui.add(settings, 'wristX',0, 10).onChange(function(newVal) {
+        var wrist = framework.scene.getObjectByName("wrist");
+        if (wrist !== undefined) {
+            wrist.position.set(newVal, wrist.position.y, wrist.position.z);
+        }
+    });
+
+    gui.add(settings, 'wristZ',0, 10).onChange(function(newVal) {
+        var wrist = framework.scene.getObjectByName("wrist");
+        if (wrist !== undefined) {
+            elbow.position.set(wrist.position.x, wrist.position.y, newVal);
+        }
+    });
 
     startTime = (new Date).getTime();
 }
