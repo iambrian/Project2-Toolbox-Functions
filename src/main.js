@@ -30,8 +30,14 @@ var timeDelta = 100; // ms
 var startTime;
 
 
+var settings = {
+    speed: 0.0
+}
 
 
+function clamp(num, min, max) {
+  return num <= min ? min : num >= max ? max : num;
+}
 
 
 // called after the scene loads
@@ -148,7 +154,7 @@ function onLoad(framework) {
     wrist.name = "wrist";
     scene.add( wrist );
 
-    // body
+    // beak
     var geometry = new THREE.CylinderGeometry( 0.01, 0.5, 2, 5 );
     var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
     var cylinder = new THREE.Mesh( geometry, material );
@@ -156,20 +162,21 @@ function onLoad(framework) {
     cylinder.rotation.x = 2;
     scene.add( cylinder );
 
-
-    var geometry = new THREE.CylinderGeometry( 0.8, 0.8, 1, 5 );
+    // head
+    var geometry = new THREE.CylinderGeometry( 0.7, 0.8, 1, 5 );
     var material = new THREE.MeshBasicMaterial( {color: 0xf7f4ef} );
     var cylinder = new THREE.Mesh( geometry, material );
     cylinder.position.set(0,0.5,5.5);
     cylinder.rotation.x = 1.8;
     scene.add( cylinder );
 
-
+    // body
     var geometry = new THREE.CylinderGeometry( 1, 0.8, 6, 5 );
     var material = new THREE.MeshBasicMaterial( {color: 0x2d251a} );
     var cylinder = new THREE.Mesh( geometry, material );
     cylinder.position.set(0,-0.5,2);
     cylinder.rotation.x = 1.4;
+    cylinder.name = "body";
     scene.add( cylinder );
 
 
@@ -189,6 +196,8 @@ function onLoad(framework) {
         camera.updateProjectionMatrix();
     });
 
+    gui.add(settings, 'speed', 0.0, 0.01);
+
     startTime = (new Date).getTime();
 }
 
@@ -205,20 +214,23 @@ function onUpdate(framework) {
 
     // increment the state every timeDelta milliseconds
     // and set the lerp alpha to equal the percentage of time elapsed between state changes
-    var curTime = (new Date).getTime() * 0.005;
-
-    // if (Math.sign(10*Math.sin(0.1*curTime + 0.5 * Math.sin(0.1*curTime))) > 0) return;
-
-    var elapsed = (new Date).getTime() - startTime;
+    var elapsed = ((new Date).getTime() - startTime);
     var alpha = elapsed / timeDelta; // amount to lerp
     if (elapsed > timeDelta) {
         alpha = 0;
         startTime = (new Date).getTime();
         state = (state + 1) % 14;
+    } else {
+        return;
     }
+
+    var curTime = (new Date).getTime() * settings.speed;
+
 
     var start = state;
     var end = (state + 1) % 14;
+
+    var freq = settings.speed;
 
 
     var shoulder = framework.scene.getObjectByName("shoulder");
@@ -248,9 +260,16 @@ function onUpdate(framework) {
             var newPos = v.lerpVectors(shoulder.position, elbow.position, (i+1)/10);
             var direction = newPos.y - sefeather.position.y;
             sefeather.position.set(newPos.x, newPos.y, newPos.z);
-            sefeather.rotation.z = -direction;
+            sefeather.rotation.z = clamp(-direction, -1, 1);
             // sefeather.rotation.y = 1.8 + 0.05 * Math.random();
             // sefeather.rotation.x = 0.05 * Math.random();
+
+            // body motion
+            var body = framework.scene.getObjectByName("body");
+            if (body !== undefined) {
+                newPos = body.position;
+                body.position.set(newPos.x, newPos.y - 0.005 * direction, newPos.z);
+            }
         }
     }
 
@@ -261,7 +280,7 @@ function onUpdate(framework) {
             var newPos = v.lerpVectors(shoulder.position, elbow.position, (i+1)/10);
             var direction = newPos.y - sefeather.position.y;
             sefeather.position.set(newPos.x, newPos.y-0.05, newPos.z-0.5);
-            sefeather.rotation.z = -direction;
+            sefeather.rotation.z = clamp(-direction, -1, 1);
             // sefeather.rotation.y = 1.8 + 0.05 * Math.random();
             // sefeather.rotation.x = 0.05 * Math.random();
         }
@@ -274,7 +293,7 @@ function onUpdate(framework) {
             var newPos = v.lerpVectors(shoulder.position, elbow.position, (i+1)/10);
             var direction = newPos.y - sefeather.position.y;
             sefeather.position.set(newPos.x, newPos.y-0.1, newPos.z-1.5);
-            sefeather.rotation.z = -direction;
+            sefeather.rotation.z = clamp(-direction, -1, 1);
             // sefeather.rotation.y = 1.8 + 0.05 * Math.random();
             // sefeather.rotation.x = 0.05 * Math.random();
         }
@@ -288,7 +307,7 @@ function onUpdate(framework) {
             var newPos = v.lerpVectors(elbow.position, wrist.position, (i+1)/10);
             var direction = newPos.y - ewfeather.position.y;
             ewfeather.position.set(newPos.x, newPos.y, newPos.z);
-            ewfeather.rotation.z = -direction;
+            ewfeather.rotation.z = clamp(-direction, -1, 1);
         }
     }
 
@@ -299,10 +318,9 @@ function onUpdate(framework) {
             var newPos = v.lerpVectors(elbow.position, wrist.position, (i+1)/10);
             var direction = newPos.y - ewfeather.position.y;
             ewfeather.position.set(newPos.x, newPos.y-0.05, newPos.z-0.5);
-            ewfeather.rotation.z = -direction;
+            ewfeather.rotation.z = clamp(-direction, -1, 1);
         }
     }
-
 
     for (var i = 0; i < 10; i++) {
         var ewfeather = framework.scene.getObjectByName("ewfeather"+i+"-3");
@@ -311,7 +329,7 @@ function onUpdate(framework) {
             var newPos = v.lerpVectors(elbow.position, wrist.position, (i+1)/10);
             var direction = newPos.y - ewfeather.position.y;
             ewfeather.position.set(newPos.x, newPos.y-0.1, newPos.z-1.5);
-            ewfeather.rotation.z = -direction;
+            ewfeather.rotation.z = clamp(-direction, -1, 1);
         }
     }
 
