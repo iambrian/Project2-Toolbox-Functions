@@ -6,29 +6,9 @@ import Framework from './framework'
 
 
 // 14 step motion: http://www.brendanbody.co.uk/flight_tutorial/
-var state = 0; // 14 states total: 0-8 down, 8-13 up
-var motion = {
-    states: [
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,3,5),    wrist: new THREE.Vector3(7,7,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,2,5),    wrist: new THREE.Vector3(7,5,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,1,5),    wrist: new THREE.Vector3(7,4,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,0.5,5),  wrist: new THREE.Vector3(7,2,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,0,5),    wrist: new THREE.Vector3(7,1,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,-0.5,5), wrist: new THREE.Vector3(7,0.5,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,-1,5),   wrist: new THREE.Vector3(7,0,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,-2,5),   wrist: new THREE.Vector3(7,-1,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,-3,5),   wrist: new THREE.Vector3(7,-3,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,-3,5),   wrist: new THREE.Vector3(7,-4,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,-1,5),   wrist: new THREE.Vector3(7,-2,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,0.5,5),  wrist: new THREE.Vector3(7,-1,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,2,5),    wrist: new THREE.Vector3(7,2,5)},
-        {shoulder: new THREE.Vector3(0,0,5), elbow: new THREE.Vector3(3,3,5),    wrist: new THREE.Vector3(7,4,5)},
-    ]
-};
-
+var state = 0;
 var timeDelta = 100; // ms
 var startTime;
-
 
 var settings = {
     speed: 0.003,
@@ -38,8 +18,78 @@ var settings = {
     elbowX: 3,
     elbowZ: 5,
     wristX: 7,
-    wristZ: 5
+    wristZ: 5,
+    density: 1,
+    maxDensity: 20,
+    feathersPerLayer: 10
 }
+
+var featherConfig = {
+    getName: function(segment, region, i, l) {
+        return "feather(" + segment + "," + region + "," + i + "," + l + ")";
+    },
+    marginalCoverts: {
+        segment: "se",
+        region: "marginalCoverts",
+        yaw: function(i) { return 1.6; },
+        scale: function(i) { return [0.5 + (Math.random() - 0.5)/3, 1, 1]; },
+        color: 1,
+        yindex: 0,
+        zindex: 0
+    },
+    secondaryCoverts: {
+        segment: "se",
+        region: "secondaryCoverts",
+        yaw: function(i) { return 1.6; },
+        scale: function(i) { return [1 + (Math.random() - 0.5)/2, 1, 1]; },
+        color: 2,
+        yindex: -0.05,
+        zindex: -0.5
+    },
+    secondaries: {
+        segment: "se",
+        region: "secondaries",
+        yaw: function(i) { return 1.6; },
+        scale: function(i) { return [1.5 + (Math.random() - 0.5)/2, 1, 1]; },
+        color: 3,
+        yindex: -0.1,
+        zindex: -1
+    },
+    alula: {
+        segment: "ew",
+        region: "alula",
+        yaw: function(i) { return 1.6; },
+        scale: function(i) { return [(10 - i)/20 + (Math.random() - 0.5)/3, 1, 1]; },
+        color: 1,
+        yindex: 0,
+        zindex: 0
+    },
+    primaryCoverts: {
+        segment: "ew",
+        region: "primaryCoverts",
+        yaw: function(i) { return 1.6/(1+Math.exp(i-7)); },
+        scale: function(i) { return [1 + (Math.random() - 0.5)/2, 1, 1]; },
+        color: 2,
+        yindex: -0.05,
+        zindex: -0.5
+    },
+    primaries: {
+        segment: "ew",
+        region: "primaries",
+        yaw: function(i) { return 1.6/(1+Math.exp(i-7)); },
+        scale: function(i) { return [1.5 + (Math.random() - 0.5)/2, 1, 1]; },
+        color: 3,
+        yindex: -0.1,
+        zindex: -1
+    }
+};
+
+var sections = [featherConfig.marginalCoverts,
+                featherConfig.secondaryCoverts,
+                featherConfig.secondaries,
+                featherConfig.alula,
+                featherConfig.primaryCoverts,
+                featherConfig.primaries];
 
 function clamp(num, min, max) {
   return num <= min ? min : num >= max ? max : num;
@@ -55,12 +105,7 @@ function onLoad(framework) {
     var stats = framework.stats;
 
     // Basic Lambert
-    var primaryColor = new THREE.Color(settings.primaryColor[0]/255, settings.primaryColor[1]/255, settings.primaryColor[2]/255);
-    var secondaryColor = new THREE.Color(settings.secondaryColor[0]/255, settings.secondaryColor[1]/255, settings.secondaryColor[2]/255);
-    var tertiaryColor = new THREE.Color(settings.tertiaryColor[0]/255, settings.tertiaryColor[1]/255, settings.tertiaryColor[2]/255);
-    var lambertPrimary = new THREE.MeshLambertMaterial({ color: primaryColor, side: THREE.DoubleSide });
-    var lambertSecondary = new THREE.MeshLambertMaterial({ color: secondaryColor, side: THREE.DoubleSide });
-    var lambertTertiary = new THREE.MeshLambertMaterial({ color: tertiaryColor, side: THREE.DoubleSide });
+    var lambertWhite = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
     // Set light
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
@@ -80,64 +125,25 @@ function onLoad(framework) {
 
     scene.background = skymap;
 
+
     // load a simple obj mesh
     var objLoader = new THREE.OBJLoader();
     objLoader.load('/geo/feather.obj', function(obj) {
-
-        // LOOK: This function runs after the obj has finished loading
         var featherGeo = obj.children[0].geometry;
-
-
-
-
-        for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertPrimary);
-            featherMesh.name = "sefeather"+i;
-            featherMesh.rotation.y = 1.8;
-            featherMesh.scale.set(0.5 + (Math.random() - 0.5)/3,1,1);
-            scene.add(featherMesh);
+        for (var s = 0; s < sections.length; s++) {
+            var config = sections[s];
+            for (var l = 0; l < settings.density; l++) {
+                for (var i = 0; i < settings.feathersPerLayer; i++) {
+                    var fi = 10 * i / settings.feathersPerLayer;
+                    var featherMesh = new THREE.Mesh(featherGeo, lambertWhite);
+                    featherMesh.name = featherConfig.getName(config.segment, config.region, i, l);
+                    featherMesh.rotation.y = config.yaw(fi);
+                    var scale = config.scale(fi);
+                    featherMesh.scale.set(scale[0], scale[1], scale[2]);
+                    scene.add(featherMesh);
+                }
+            }
         }
-
-        for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertSecondary);
-            featherMesh.name = "sefeather"+i+"-2";
-            featherMesh.rotation.y = 1.6;
-            featherMesh.scale.set(1 + (Math.random() - 0.5)/2,1,1);
-            scene.add(featherMesh);
-        }
-
-        for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertTertiary);
-            featherMesh.name = "sefeather"+i+"-3";
-            featherMesh.rotation.y = 1.6;
-            featherMesh.scale.set(1.5 + (Math.random() - 0.5)/2,1,1);
-            scene.add(featherMesh);
-        }
-
-        for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertPrimary);
-            featherMesh.name = "ewfeather"+i;
-            featherMesh.rotation.y = 1.6;
-            featherMesh.scale.set((10 - i)/20 + (Math.random() - 0.5)/3,1,1);
-            scene.add(featherMesh);
-        }
-
-        for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertSecondary);
-            featherMesh.name = "ewfeather"+i+"-2";
-            featherMesh.rotation.y = 1.6/(1+Math.exp(i-7));
-            featherMesh.scale.set(1 + (Math.random() - 0.5)/2,1,1);
-            scene.add(featherMesh);
-        }
-
-        for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertTertiary);
-            featherMesh.name = "ewfeather"+i+"-3";
-            featherMesh.rotation.y = 1.6/(1+Math.exp(i-7));
-            featherMesh.scale.set(1.5 + (Math.random() - 0.5)/2,1,1);
-            scene.add(featherMesh);
-        }
-
     });
 
     var geometry = new THREE.BoxGeometry(0,0,0 );
@@ -188,9 +194,6 @@ function onLoad(framework) {
     scene.add( cylinder );
 
 
-
-
-
     // set camera position
     camera.position.set(0, 10, 10);
     camera.lookAt(new THREE.Vector3(0,0,0));
@@ -205,9 +208,11 @@ function onLoad(framework) {
     });
 
     gui.add(settings, 'speed', 0.0, 0.01);
+
     gui.addColor(settings, 'primaryColor');
     gui.addColor(settings, 'secondaryColor');
     gui.addColor(settings, 'tertiaryColor');
+
     gui.add(settings, 'elbowX',0, 10).onChange(function(newVal) {
         var elbow = framework.scene.getObjectByName("elbow");
         if (elbow !== undefined) {
@@ -236,6 +241,8 @@ function onLoad(framework) {
         }
     });
 
+    gui.add(settings, 'density', 0, settings.maxDensity);
+
     startTime = (new Date).getTime();
 }
 
@@ -248,13 +255,6 @@ function onUpdate(framework) {
     var lambertPrimary = new THREE.MeshLambertMaterial({ color: primaryColor, side: THREE.DoubleSide });
     var lambertSecondary = new THREE.MeshLambertMaterial({ color: secondaryColor, side: THREE.DoubleSide });
     var lambertTertiary = new THREE.MeshLambertMaterial({ color: tertiaryColor, side: THREE.DoubleSide });
-
-    var feather = framework.scene.getObjectByName("feather");
-    if (feather !== undefined) {
-        // Simply flap wing
-        var date = new Date();
-        feather.rotateZ(Math.sin(date.getTime() / 100) * 2 * Math.PI / 180);
-    }
 
     var v = new THREE.Vector3(0,0,0);
 
@@ -271,114 +271,59 @@ function onUpdate(framework) {
     }
 
     var curTime = (new Date).getTime() * settings.speed;
-
-
-    var start = state;
-    var end = (state + 1) % 14;
-
     var freq = settings.speed;
 
-
     var shoulder = framework.scene.getObjectByName("shoulder");
-    if (shoulder !== undefined) {
-        var newPos = v.lerpVectors(motion.states[start].shoulder, motion.states[end].shoulder, alpha);
-        shoulder.position.set(newPos.x, newPos.y, newPos.z);
-    }
-
     var elbow = framework.scene.getObjectByName("elbow");
     if (elbow !== undefined) {
-        // var newPos = v.lerpVectors(motion.states[start].elbow, motion.states[end].elbow, alpha);
-        // elbow.position.set(newPos.x, newPos.y, newPos.z);
         elbow.position.set(elbow.position.x, 3 * Math.sin(curTime+1 + 0.5 * Math.sin(curTime+1)), elbow.position.z);
     }
 
     var wrist = framework.scene.getObjectByName("wrist");
     if (wrist !== undefined) {
-        // var newPos = v.lerpVectors(motion.states[start].wrist, motion.states[end].wrist, alpha);
-        // wrist.position.set(newPos.x, newPos.y, newPos.z);
         wrist.position.set(wrist.position.x, 6 * Math.sin(curTime + 0.5 * Math.sin(curTime)), wrist.position.z);
     }
 
-    for (var i = 0; i < 10; i++) {
-        var sefeather = framework.scene.getObjectByName("sefeather"+i);
-        if (sefeather !== undefined) {
-            // Simply flap wing
-            var newPos = v.lerpVectors(shoulder.position, elbow.position, (i+1)/10);
-            var direction = newPos.y - sefeather.position.y;
-            sefeather.position.set(newPos.x, newPos.y, newPos.z);
-            sefeather.rotation.z = clamp(-direction, -1, 1);
-            sefeather.material = lambertPrimary;
+    for (var s = 0; s < sections.length; s++) {
+        var config = sections[s];
+        for (var l = 0; l < settings.density; l++) {
+            for (var i = 0; i < settings.feathersPerLayer; i++) {
+                var fi = 10 * i / settings.feathersPerLayer;
+                var name = featherConfig.getName(config.segment, config.region, i, l);
+                var feather = framework.scene.getObjectByName(name);
+                if (feather !== undefined) {
 
-            // body motion
-            var body = framework.scene.getObjectByName("body");
-            if (body !== undefined) {
-                newPos = body.position;
-                body.position.set(newPos.x, newPos.y - 0.005 * direction, newPos.z);
+                    if (config.segment == "se") {
+                        var start = shoulder;
+                        var end = elbow;
+                    } else if (config.segment == "ew") {
+                        var start = elbow;
+                        var end = wrist;
+                    }
+
+                    var newPos = v.lerpVectors(start.position, end.position, (fi+1)/10);
+                    var direction = newPos.y - feather.position.y;
+                    feather.position.set(newPos.x, newPos.y+config.yindex, newPos.z+config.zindex);
+                    feather.rotation.z = clamp(-direction, -1, 1);
+
+                    switch (config.color) {
+                        case 1:
+                        feather.material = lambertPrimary;
+                        break;
+                        case 2:
+                        feather.material = lambertSecondary;
+                        break;
+                        case 3:
+                        feather.material = lambertTertiary;
+                        break;
+                    }
+
+                } else {
+                    console.log("undefined feather: " + name);
+                }
             }
         }
     }
-
-    for (var i = 0; i < 10; i++) {
-        var sefeather = framework.scene.getObjectByName("sefeather"+i+"-2");
-        if (sefeather !== undefined) {
-            // Simply flap wing
-            var newPos = v.lerpVectors(shoulder.position, elbow.position, (i+1)/10);
-            var direction = newPos.y - sefeather.position.y;
-            sefeather.position.set(newPos.x, newPos.y-0.05, newPos.z-0.5);
-            sefeather.rotation.z = clamp(-direction, -1, 1);
-            sefeather.material = lambertSecondary;
-        }
-    }
-
-    for (var i = 0; i < 10; i++) {
-        var sefeather = framework.scene.getObjectByName("sefeather"+i+"-3");
-        if (sefeather !== undefined) {
-            // Simply flap wing
-            var newPos = v.lerpVectors(shoulder.position, elbow.position, (i+1)/10);
-            var direction = newPos.y - sefeather.position.y;
-            sefeather.position.set(newPos.x, newPos.y-0.1, newPos.z-1.5);
-            sefeather.rotation.z = clamp(-direction, -1, 1);
-            sefeather.material = lambertTertiary;
-        }
-    }
-
-
-    for (var i = 0; i < 10; i++) {
-        var ewfeather = framework.scene.getObjectByName("ewfeather"+i);
-        if (ewfeather !== undefined) {
-            // Simply flap wing
-            var newPos = v.lerpVectors(elbow.position, wrist.position, (i+1)/10);
-            var direction = newPos.y - ewfeather.position.y;
-            ewfeather.position.set(newPos.x, newPos.y, newPos.z);
-            ewfeather.rotation.z = clamp(-direction, -1, 1);
-            ewfeather.material = lambertPrimary;
-        }
-    }
-
-    for (var i = 0; i < 10; i++) {
-        var ewfeather = framework.scene.getObjectByName("ewfeather"+i+"-2");
-        if (ewfeather !== undefined) {
-            // Simply flap wing
-            var newPos = v.lerpVectors(elbow.position, wrist.position, (i+1)/10);
-            var direction = newPos.y - ewfeather.position.y;
-            ewfeather.position.set(newPos.x, newPos.y-0.05, newPos.z-0.5);
-            ewfeather.rotation.z = clamp(-direction, -1, 1);
-            ewfeather.material = lambertSecondary;
-        }
-    }
-
-    for (var i = 0; i < 10; i++) {
-        var ewfeather = framework.scene.getObjectByName("ewfeather"+i+"-3");
-        if (ewfeather !== undefined) {
-            // Simply flap wing
-            var newPos = v.lerpVectors(elbow.position, wrist.position, (i+1)/10);
-            var direction = newPos.y - ewfeather.position.y;
-            ewfeather.position.set(newPos.x, newPos.y-0.1, newPos.z-1.5);
-            ewfeather.rotation.z = clamp(-direction, -1, 1);
-            ewfeather.material = lambertTertiary;
-        }
-    }
-
 }
 
 // when the scene is done initializing, it will call onLoad, then on frame updates, call onUpdate
