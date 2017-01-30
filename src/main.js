@@ -31,9 +31,11 @@ var startTime;
 
 
 var settings = {
-    speed: 0.0
+    speed: 0.003,
+    primaryColor: [ 91,	78,	60 ],
+    secondaryColor: [ 76, 64, 47 ],
+    tertiaryColor: [ 45, 37, 26 ]
 }
-
 
 function clamp(num, min, max) {
   return num <= min ? min : num >= max ? max : num;
@@ -48,10 +50,14 @@ function onLoad(framework) {
     var gui = framework.gui;
     var stats = framework.stats;
 
-    // Basic Lambert white
-    var lambertYellow = new THREE.MeshLambertMaterial({ color: 0x5b4e3c, side: THREE.DoubleSide });
-    var lambertLBrown = new THREE.MeshLambertMaterial({ color: 0x4c402f, side: THREE.DoubleSide });
-    var lambertDBrown = new THREE.MeshLambertMaterial({ color: 0x2d251a, side: THREE.DoubleSide });
+    // Basic Lambert
+    var primaryColor = new THREE.Color(settings.primaryColor[0]/255, settings.primaryColor[1]/255, settings.primaryColor[2]/255);
+    var secondaryColor = new THREE.Color(settings.secondaryColor[0]/255, settings.secondaryColor[1]/255, settings.secondaryColor[2]/255);
+    var tertiaryColor = new THREE.Color(settings.tertiaryColor[0]/255, settings.tertiaryColor[1]/255, settings.tertiaryColor[2]/255);
+    var lambertPrimary = new THREE.MeshLambertMaterial({ color: primaryColor, side: THREE.DoubleSide });
+    var lambertSecondary = new THREE.MeshLambertMaterial({ color: secondaryColor, side: THREE.DoubleSide });
+    var lambertTertiary = new THREE.MeshLambertMaterial({ color: tertiaryColor, side: THREE.DoubleSide });
+
 
     // Set light
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
@@ -82,7 +88,7 @@ function onLoad(framework) {
 
 
         for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertYellow);
+            var featherMesh = new THREE.Mesh(featherGeo, lambertPrimary);
             featherMesh.name = "sefeather"+i;
             featherMesh.rotation.y = 1.8;
             featherMesh.scale.set(0.5 + (Math.random() - 0.5)/3,1,1);
@@ -90,7 +96,7 @@ function onLoad(framework) {
         }
 
         for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertLBrown);
+            var featherMesh = new THREE.Mesh(featherGeo, lambertSecondary);
             featherMesh.name = "sefeather"+i+"-2";
             featherMesh.rotation.y = 1.6;
             featherMesh.scale.set(1 + (Math.random() - 0.5)/2,1,1);
@@ -98,7 +104,7 @@ function onLoad(framework) {
         }
 
         for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertDBrown);
+            var featherMesh = new THREE.Mesh(featherGeo, lambertTertiary);
             featherMesh.name = "sefeather"+i+"-3";
             featherMesh.rotation.y = 1.6;
             featherMesh.scale.set(1.5 + (Math.random() - 0.5)/2,1,1);
@@ -106,7 +112,7 @@ function onLoad(framework) {
         }
 
         for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertYellow);
+            var featherMesh = new THREE.Mesh(featherGeo, lambertPrimary);
             featherMesh.name = "ewfeather"+i;
             featherMesh.rotation.y = 1.6;
             featherMesh.scale.set((10 - i)/20 + (Math.random() - 0.5)/3,1,1);
@@ -114,7 +120,7 @@ function onLoad(framework) {
         }
 
         for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertLBrown);
+            var featherMesh = new THREE.Mesh(featherGeo, lambertSecondary);
             featherMesh.name = "ewfeather"+i+"-2";
             featherMesh.rotation.y = 1.6/(1+Math.exp(i-7));
             featherMesh.scale.set(1 + (Math.random() - 0.5)/2,1,1);
@@ -122,7 +128,7 @@ function onLoad(framework) {
         }
 
         for (var i = 0; i < 10; i++) {
-            var featherMesh = new THREE.Mesh(featherGeo, lambertDBrown);
+            var featherMesh = new THREE.Mesh(featherGeo, lambertTertiary);
             featherMesh.name = "ewfeather"+i+"-3";
             featherMesh.rotation.y = 1.6/(1+Math.exp(i-7));
             featherMesh.scale.set(1.5 + (Math.random() - 0.5)/2,1,1);
@@ -197,12 +203,23 @@ function onLoad(framework) {
     });
 
     gui.add(settings, 'speed', 0.0, 0.01);
+    gui.addColor(settings, 'primaryColor');
+    gui.addColor(settings, 'secondaryColor');
+    gui.addColor(settings, 'tertiaryColor');
 
     startTime = (new Date).getTime();
 }
 
 // called on frame updates
 function onUpdate(framework) {
+
+    var primaryColor = new THREE.Color(settings.primaryColor[0]/255, settings.primaryColor[1]/255, settings.primaryColor[2]/255);
+    var secondaryColor = new THREE.Color(settings.secondaryColor[0]/255, settings.secondaryColor[1]/255, settings.secondaryColor[2]/255);
+    var tertiaryColor = new THREE.Color(settings.tertiaryColor[0]/255, settings.tertiaryColor[1]/255, settings.tertiaryColor[2]/255);
+    var lambertPrimary = new THREE.MeshLambertMaterial({ color: primaryColor, side: THREE.DoubleSide });
+    var lambertSecondary = new THREE.MeshLambertMaterial({ color: secondaryColor, side: THREE.DoubleSide });
+    var lambertTertiary = new THREE.MeshLambertMaterial({ color: tertiaryColor, side: THREE.DoubleSide });
+
     var feather = framework.scene.getObjectByName("feather");
     if (feather !== undefined) {
         // Simply flap wing
@@ -261,8 +278,7 @@ function onUpdate(framework) {
             var direction = newPos.y - sefeather.position.y;
             sefeather.position.set(newPos.x, newPos.y, newPos.z);
             sefeather.rotation.z = clamp(-direction, -1, 1);
-            // sefeather.rotation.y = 1.8 + 0.05 * Math.random();
-            // sefeather.rotation.x = 0.05 * Math.random();
+            sefeather.material = lambertPrimary;
 
             // body motion
             var body = framework.scene.getObjectByName("body");
@@ -281,8 +297,7 @@ function onUpdate(framework) {
             var direction = newPos.y - sefeather.position.y;
             sefeather.position.set(newPos.x, newPos.y-0.05, newPos.z-0.5);
             sefeather.rotation.z = clamp(-direction, -1, 1);
-            // sefeather.rotation.y = 1.8 + 0.05 * Math.random();
-            // sefeather.rotation.x = 0.05 * Math.random();
+            sefeather.material = lambertSecondary;
         }
     }
 
@@ -294,8 +309,7 @@ function onUpdate(framework) {
             var direction = newPos.y - sefeather.position.y;
             sefeather.position.set(newPos.x, newPos.y-0.1, newPos.z-1.5);
             sefeather.rotation.z = clamp(-direction, -1, 1);
-            // sefeather.rotation.y = 1.8 + 0.05 * Math.random();
-            // sefeather.rotation.x = 0.05 * Math.random();
+            sefeather.material = lambertTertiary;
         }
     }
 
@@ -308,6 +322,7 @@ function onUpdate(framework) {
             var direction = newPos.y - ewfeather.position.y;
             ewfeather.position.set(newPos.x, newPos.y, newPos.z);
             ewfeather.rotation.z = clamp(-direction, -1, 1);
+            ewfeather.material = lambertPrimary;
         }
     }
 
@@ -319,6 +334,7 @@ function onUpdate(framework) {
             var direction = newPos.y - ewfeather.position.y;
             ewfeather.position.set(newPos.x, newPos.y-0.05, newPos.z-0.5);
             ewfeather.rotation.z = clamp(-direction, -1, 1);
+            ewfeather.material = lambertSecondary;
         }
     }
 
@@ -330,6 +346,7 @@ function onUpdate(framework) {
             var direction = newPos.y - ewfeather.position.y;
             ewfeather.position.set(newPos.x, newPos.y-0.1, newPos.z-1.5);
             ewfeather.rotation.z = clamp(-direction, -1, 1);
+            ewfeather.material = lambertTertiary;
         }
     }
 
