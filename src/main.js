@@ -250,7 +250,7 @@ function onLoad(framework) {
     scene.add(cylinder);
 
     // body
-    var geometry = new THREE.CylinderGeometry(1, 0.8, 6, 5);
+    var geometry = new THREE.CylinderGeometry(1.2, 0.8, 6, 5);
     var material = new THREE.MeshBasicMaterial({
         color: 0x2d251a
     });
@@ -375,7 +375,24 @@ function onUpdate(framework) {
     var shoulder = framework.scene.getObjectByName("shoulder");
     var elbow = framework.scene.getObjectByName("elbow");
     if (elbow !== undefined) {
-        elbow.position.set(elbow.position.x, 3 * Math.sin(curTime + 1 + 0.5 * Math.sin(curTime + 1)), elbow.position.z);
+        var newY =  3 * Math.sin(curTime + 1 + 0.5 * Math.sin(curTime + 1));
+        var delta = 0.05 * (newY - elbow.position.y);
+        elbow.position.set(elbow.position.x, newY, elbow.position.z);
+        var body = framework.scene.getObjectByName("body");
+        if (body !== undefined) {
+            body.position.set(body.position.x, body.position.y - delta, body.position.z);
+        }
+
+        // tail
+        for (var i = 5; i < 15; i++) {
+            var fi = 10 * i / 20;
+            var name = featherConfig.getName("tail", "tail", "center", i, 0);
+            var feather = framework.scene.getObjectByName(name);
+            if (feather !== undefined) {
+                feather.rotation.x = 0.05 * Math.random();
+                feather.position.set(feather.position.x, feather.position.y - delta, feather.position.z);
+            }
+        }
     }
 
     var wrist = framework.scene.getObjectByName("wrist");
@@ -439,18 +456,6 @@ function onUpdate(framework) {
             }
         }
     });
-
-
-
-    // tail
-    for (var i = 5; i < 15; i++) {
-        var fi = 10 * i / 20;
-        var name = featherConfig.getName("tail", "tail", "center", i, 0);
-        var feather = framework.scene.getObjectByName(name);
-        if (feather !== undefined) {
-            feather.rotation.x = 0.05 * Math.random();
-        }
-    }
 }
 
 // when the scene is done initializing, it will call onLoad, then on frame updates, call onUpdate
