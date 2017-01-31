@@ -20,6 +20,8 @@ var settings = {
     numLayers: 1,
     maxDensity: 40,
     density: 40,
+    windSpeed: 0.3,
+    windDirection: 0.0,
     showCtrlPts: false
 }
 
@@ -201,33 +203,52 @@ function onLoad(framework) {
         }
     });
 
-    var geometry = new THREE.BoxGeometry(0, 0, 0);
+    var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
     var material = new THREE.MeshBasicMaterial({
         color: 0xCB2400
     });
     var shoulder = new THREE.Mesh(geometry, material);
     shoulder.position.set(0, 0, 5);
     shoulder.name = "shoulder";
+    shoulder.visible = settings.showCtrlPts;
     scene.add(shoulder);
 
-    var geometry = new THREE.BoxGeometry(0, 0, 0);
+    var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
     var material = new THREE.MeshBasicMaterial({
         color: 0xC67563
     });
     var elbow = new THREE.Mesh(geometry, material);
     elbow.position.set(3, -3, 5);
     elbow.name = "elbow";
+    elbow.visible = settings.showCtrlPts;
     scene.add(elbow);
 
 
-    var geometry = new THREE.BoxGeometry(0, 0, 0);
+    var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
     var material = new THREE.MeshBasicMaterial({
         color: 0xCAA8A1
     });
     var wrist = new THREE.Mesh(geometry, material);
     wrist.position.set(7, -7, 5);
     wrist.name = "wrist";
+    wrist.visible = settings.showCtrlPts;
     scene.add(wrist);
+
+    // spline
+    var curve = new THREE.SplineCurve3( [
+    	shoulder.position,
+        elbow.position,
+        wrist.position
+    ] );
+    var path = new THREE.Path( curve.getPoints( 50 ) );
+    var geometry = path.createPointsGeometry( 50 );
+    var material = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+
+    // Create the final object to add to the scene
+    var splineObject = new THREE.Line( geometry, material );
+    splineObject.name = "spline";
+    splineObject.visible = settings.showCtrlPts;
+    scene.add(splineObject);
 
     // beak
     var geometry = new THREE.CylinderGeometry(0.01, 0.5, 2, 5);
@@ -312,26 +333,29 @@ function onLoad(framework) {
 
     gui.add(settings, 'showCtrlPts').onChange(function(newVal) {
         var shoulder = framework.scene.getObjectByName("shoulder");
+        if (shoulder !== undefined) {
+            shoulder.visible = newVal;
+        }
+
         var elbow = framework.scene.getObjectByName("elbow");
         if (elbow !== undefined) {
-            if (newVal) {
-                var geometry = new THREE.BoxGeometry(1, 1, 1);
-            } else {
-                var geometry = new THREE.BoxGeometry(0, 0, 0);
-            }
-            elbow.geometry = geometry;
+            elbow.visible = newVal;
         }
 
         var wrist = framework.scene.getObjectByName("wrist");
         if (wrist !== undefined) {
-            if (newVal) {
-                var geometry = new THREE.BoxGeometry(1, 1, 1);
-            } else {
-                var geometry = new THREE.BoxGeometry(0, 0, 0);
-            }
-            wrist.geometry = geometry;
+            wrist.visible = newVal;
         }
+
+        var spline = framework.scene.getObjectByName("spline");
+        if (spline !== undefined) {
+            spline.visible = newVal;
+        }
+
     });
+
+    gui.add(settings, 'windSpeed', 0.0, 1.0);
+    gui.add(settings, 'windDirection', -1.0, 1.0);
 
     startTime = (new Date).getTime();
 }
@@ -372,6 +396,7 @@ function onUpdate(framework) {
     var curTime = (new Date).getTime() * settings.speed;
     var freq = settings.speed;
 
+    // joints
     var shoulder = framework.scene.getObjectByName("shoulder");
     var elbow = framework.scene.getObjectByName("elbow");
     if (elbow !== undefined) {
@@ -389,7 +414,7 @@ function onUpdate(framework) {
             var name = featherConfig.getName("tail", "tail", "center", i, 0);
             var feather = framework.scene.getObjectByName(name);
             if (feather !== undefined) {
-                feather.rotation.x = 0.05 * Math.random();
+                feather.rotation.x = settings.windSpeed * 0.1 * Math.random();
                 feather.position.set(feather.position.x, feather.position.y - delta, feather.position.z);
             }
         }
@@ -400,6 +425,24 @@ function onUpdate(framework) {
         wrist.position.set(wrist.position.x, 6 * Math.sin(curTime + 0.5 * Math.sin(curTime)), wrist.position.z);
     }
 
+    // spline
+
+    // Create the final object to add to the scene
+    var splineObject = framework.scene.getObjectByName("spline");
+    if (splineObject !== undefined) {
+        var curve = new THREE.SplineCurve3( [
+        	shoulder.position,
+            elbow.position,
+            wrist.position
+        ] );
+        var path = new THREE.Path( curve.getPoints( 50 ) );
+        var geometry = path.createPointsGeometry( 50 );
+        splineObject.geometry = geometry;
+        splineObject.position.set(shoulder.position.x, shoulder.position.y, shoulder.position.z);
+    }
+
+
+    // feathers
     ["left", "right"].forEach(function(value, index, array) {
         var side = value;
         for (var s = 0; s < sections.length; s++) {
@@ -416,9 +459,11 @@ function onUpdate(framework) {
                             if (config.segment == "se") {
                                 var start = shoulder;
                                 var end = elbow;
+                                var t = fi / 10 * 0.5;
                             } else if (config.segment == "ew") {
                                 var start = elbow;
                                 var end = wrist;
+                                var t = fi / 10 * 0.5 + 0.5;
                             }
 
                             if (side == "right") {
@@ -427,12 +472,13 @@ function onUpdate(framework) {
                                 var coeff = 1;
                             }
 
-
-                            var newPos = v.lerpVectors(start.position, end.position, (fi + 1) / 10);
+                            // var newPos = v.lerpVectors(start.position, end.position, (fi + 1) / 10);
+                            var newPos = curve.getPoint(t);
                             var direction = newPos.y - feather.position.y;
                             feather.position.set(coeff * newPos.x, newPos.y + config.yindex, newPos.z + config.zindex);
                             feather.rotation.z = clamp(-direction, -1, 1);
-                            feather.rotation.x = 0.3 * Math.random();
+                            feather.rotation.x = settings.windSpeed * Math.random();
+                            feather.rotation.y = config.yaw(fi, side) - settings.windDirection;
                             feather.visible = true;
 
                             switch (config.color) {
