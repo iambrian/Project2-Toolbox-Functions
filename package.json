@@ -3,7 +3,7 @@
     "start": "webpack-dev-server --hot --inline",
     "build": "webpack",
     "deploy": "gh-pages-deploy"
-  }
+  },
   "gh-pages-deploy": {
     "prep": [
       "build"
