@@ -22,7 +22,8 @@ var settings = {
     density: 40,
     windSpeed: 0.3,
     windDirection: 0.0,
-    showCtrlPts: false
+    showCtrlPts: false,
+    toggleSpline: true
 }
 
 var featherConfig = {
@@ -357,6 +358,8 @@ function onLoad(framework) {
     gui.add(settings, 'windSpeed', 0.0, 1.0);
     gui.add(settings, 'windDirection', -1.0, 1.0);
 
+    gui.add(settings, 'toggleSpline');
+
     startTime = (new Date).getTime();
 }
 
@@ -472,8 +475,11 @@ function onUpdate(framework) {
                                 var coeff = 1;
                             }
 
-                            // var newPos = v.lerpVectors(start.position, end.position, (fi + 1) / 10);
-                            var newPos = curve.getPoint(t);
+                            if (settings.toggleSpline) {
+                                var newPos = curve.getPoint(t);
+                            } else {
+                                var newPos = v.lerpVectors(start.position, end.position, (fi + 1) / 10);
+                            }
                             var direction = newPos.y - feather.position.y;
                             feather.position.set(coeff * newPos.x, newPos.y + config.yindex, newPos.z + config.zindex);
                             feather.rotation.z = clamp(-direction, -1, 1);
