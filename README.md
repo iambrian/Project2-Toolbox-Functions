@@ -1,7 +1,7 @@
 # [Project2: Toolbox Functions](https://github.com/CIS700-Procedural-Graphics/Project2-Toolbox-Functions)
 
 ## Wing Structure
-Consists of three joints (shoulder, elbow, wrist). The shoulder joint is stationary within the body but the wrist and elbow are located at a fixed distance (in the x and z direction) from the body. Feathers are placed on an interpolated line between each pair of joints. Each region of feathers is created by offsetting from this interpolated line.
+Consists of three joints (shoulder, elbow, wrist). The shoulder joint is stationary within the body but the wrist and elbow are located at a fixed distance (in the x and z direction) from the body. Feathers are placed on a spline with control points at each joint or simply linearly interpolated between pairs of joints (use toggleSpline). Each region of feathers is created by offsetting from this interpolated line.
 
 ## Wing Animation
 My goal was to emulate a motion like this:
