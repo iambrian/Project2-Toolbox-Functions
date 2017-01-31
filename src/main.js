@@ -168,7 +168,7 @@ function onLoad(framework) {
 
     // load a simple obj mesh
     var objLoader = new THREE.OBJLoader();
-    objLoader.load('/geo/feather.obj', function(obj) {
+    objLoader.load('geo/feather.obj', function(obj) {
         var featherGeo = obj.children[0].geometry;
 
         ["left", "right"].forEach(function(value, index, array) {
