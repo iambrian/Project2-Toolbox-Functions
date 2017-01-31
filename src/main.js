@@ -144,6 +144,18 @@ function onLoad(framework) {
                 }
             }
         }
+
+
+        // tail
+        for (var i = 5; i < 15; i++) {
+            var featherMesh = new THREE.Mesh(featherGeo, lambertWhite);
+            var fi = 10 * i / 20;
+            featherMesh.name = featherConfig.getName("tail", "tail", i, 0);
+            featherMesh.rotation.y = 3 * fi / 10;
+            featherMesh.position.set(0,-0.25,0);
+            featherMesh.scale.set(1,1,1);
+            scene.add(featherMesh);
+        }
     });
 
     var geometry = new THREE.BoxGeometry(0,0,0 );
@@ -290,7 +302,7 @@ function onUpdate(framework) {
         startTime = (new Date).getTime();
         state = (state + 1) % 14;
     } else {
-        return;a
+        return;
     }
 
     var curTime = (new Date).getTime() * settings.speed;
@@ -350,6 +362,17 @@ function onUpdate(framework) {
                     console.log("undefined feather: " + name);
                 }
             }
+        }
+    }
+
+
+    // tail
+    for (var i = 5; i < 15; i++) {
+        var fi = 10 * i / 20;
+        var name = featherConfig.getName("tail", "tail", i, 0);
+        var feather = framework.scene.getObjectByName(name);
+        if (feather !== undefined) {
+            feather.rotation.x = 0.05 * Math.random();
         }
     }
 }
