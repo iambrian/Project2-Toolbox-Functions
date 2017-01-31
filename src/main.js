@@ -19,9 +19,10 @@ var settings = {
     elbowZ: 5,
     wristX: 7,
     wristZ: 5,
-    density: 1,
-    maxDensity: 20,
-    feathersPerLayer: 10
+    numLayers: 1,
+    maxDensity: 40,
+    density: 40,
+    showCtrlPts: false
 }
 
 var featherConfig = {
@@ -125,16 +126,15 @@ function onLoad(framework) {
 
     scene.background = skymap;
 
-
     // load a simple obj mesh
     var objLoader = new THREE.OBJLoader();
     objLoader.load('/geo/feather.obj', function(obj) {
         var featherGeo = obj.children[0].geometry;
         for (var s = 0; s < sections.length; s++) {
             var config = sections[s];
-            for (var l = 0; l < settings.density; l++) {
-                for (var i = 0; i < settings.feathersPerLayer; i++) {
-                    var fi = 10 * i / settings.feathersPerLayer;
+            for (var l = 0; l < settings.numLayers; l++) {
+                for (var i = 0; i < settings.density; i++) {
+                    var fi = 10 * i / settings.density;
                     var featherMesh = new THREE.Mesh(featherGeo, lambertWhite);
                     featherMesh.name = featherConfig.getName(config.segment, config.region, i, l);
                     featherMesh.rotation.y = config.yaw(fi);
@@ -243,6 +243,29 @@ function onLoad(framework) {
 
     gui.add(settings, 'density', 0, settings.maxDensity);
 
+    gui.add(settings, 'showCtrlPts').onChange(function(newVal) {
+        var shoulder = framework.scene.getObjectByName("shoulder");
+        var elbow = framework.scene.getObjectByName("elbow");
+        if (elbow !== undefined) {
+            if (newVal) {
+                var geometry = new THREE.BoxGeometry(1,1,1);
+            } else {
+                var geometry = new THREE.BoxGeometry(0,0,0);
+            }
+            elbow.geometry = geometry;
+        }
+
+        var wrist = framework.scene.getObjectByName("wrist");
+        if (wrist !== undefined) {
+            if (newVal) {
+                var geometry = new THREE.BoxGeometry(1,1,1);
+            } else {
+                var geometry = new THREE.BoxGeometry(0,0,0);
+            }
+            wrist.geometry = geometry;
+        }
+    });
+
     startTime = (new Date).getTime();
 }
 
@@ -267,7 +290,7 @@ function onUpdate(framework) {
         startTime = (new Date).getTime();
         state = (state + 1) % 14;
     } else {
-        return;
+        return;a
     }
 
     var curTime = (new Date).getTime() * settings.speed;
@@ -286,38 +309,43 @@ function onUpdate(framework) {
 
     for (var s = 0; s < sections.length; s++) {
         var config = sections[s];
-        for (var l = 0; l < settings.density; l++) {
-            for (var i = 0; i < settings.feathersPerLayer; i++) {
-                var fi = 10 * i / settings.feathersPerLayer;
+        for (var l = 0; l < settings.numLayers; l++) {
+            for (var i = 0; i < settings.maxDensity; i++) {
+                var fi = 10 * i / settings.density;
                 var name = featherConfig.getName(config.segment, config.region, i, l);
                 var feather = framework.scene.getObjectByName(name);
                 if (feather !== undefined) {
 
-                    if (config.segment == "se") {
-                        var start = shoulder;
-                        var end = elbow;
-                    } else if (config.segment == "ew") {
-                        var start = elbow;
-                        var end = wrist;
+                    if (i < settings.density) {
+                        if (config.segment == "se") {
+                            var start = shoulder;
+                            var end = elbow;
+                        } else if (config.segment == "ew") {
+                            var start = elbow;
+                            var end = wrist;
+                        }
+
+                        var newPos = v.lerpVectors(start.position, end.position, (fi+1)/10);
+                        var direction = newPos.y - feather.position.y;
+                        feather.position.set(newPos.x, newPos.y+config.yindex, newPos.z+config.zindex);
+                        feather.rotation.z = clamp(-direction, -1, 1);
+                        feather.rotation.x = 0.3 * Math.random();
+                        feather.visible = true;
+
+                        switch (config.color) {
+                            case 1:
+                            feather.material = lambertPrimary;
+                            break;
+                            case 2:
+                            feather.material = lambertSecondary;
+                            break;
+                            case 3:
+                            feather.material = lambertTertiary;
+                            break;
+                        }
+                    } else {
+                        feather.visible = false;
                     }
-
-                    var newPos = v.lerpVectors(start.position, end.position, (fi+1)/10);
-                    var direction = newPos.y - feather.position.y;
-                    feather.position.set(newPos.x, newPos.y+config.yindex, newPos.z+config.zindex);
-                    feather.rotation.z = clamp(-direction, -1, 1);
-
-                    switch (config.color) {
-                        case 1:
-                        feather.material = lambertPrimary;
-                        break;
-                        case 2:
-                        feather.material = lambertSecondary;
-                        break;
-                        case 3:
-                        feather.material = lambertTertiary;
-                        break;
-                    }
-
                 } else {
                     console.log("undefined feather: " + name);
                 }
