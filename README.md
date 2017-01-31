@@ -12,10 +12,11 @@ Given that the shoulder joint (green) is stationary, the relative y position of 
 
 ![Joint Displacements](https://i.imgur.com/vb2zfz0.png)
 
-The first thing to note is that the falling edge on each oscillation takes longer than the rising edge, simulating the the longer downstroke[\[1\]](http://www.brendanbody.co.uk/flight_tutorial/). This asymmetric sine wave is achieved using some variation of this equation: sin(x + a * sin(x))[\[2\]](https://www.quora.com/How-can-I-draw-this-irregular-Sine-function-in-MATLAB-Should-I-add-multiple-the-Sine-function-to-another-term).
+This pair of functions has a couple of key characteristics:
 
+The falling edge on each oscillation should take longer than the rising edge. This makes the wing motion more realistic as the upstroke is about twice as fast as the downstroke[\[1\]](http://www.brendanbody.co.uk/flight_tutorial/). This asymmetric sine wave is achieved using some variation of this function: sin(x + a * sin(x))[\[2\]](https://www.quora.com/How-can-I-draw-this-irregular-Sine-function-in-MATLAB-Should-I-add-multiple-the-Sine-function-to-another-term).
 
-The next feature is that the elbow displacement must reach its highest and lowest points slightly before the wrist does. It's important that this is a translation of the function and not a stretch or else the periods will go out of sync.
+The elbow displacement function must reach its high and low peaks slightly before the wrist does. It's important that this is a translation of the function or else the periods will go out of sync.
 
 Lastly, the amplitude of the elbow displacement is less than that of the wrist.
 
